@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Cold Chain Complaint Map</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;font-family:'Inter',sans-serif;background:#F9F5F2;color:#4A3228;overflow:hidden;}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-thumb{background:#E8D5CC;border-radius:4px;}
+
+#overlay{position:fixed;inset:0;background:#F9F5F2;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:10px;}
+#ov-icon{font-size:48px;animation:pulse 1.6s ease-in-out infinite;}
+#ov-title{font-family:'Playfair Display',serif;font-size:20px;color:#6B3F2E;}
+#ov-sub{font-size:13px;color:#C4A99E;}
+#ov-error{font-size:12px;color:#C0533A;background:#FFF0EB;padding:10px 20px;border-radius:8px;max-width:460px;text-align:center;display:none;line-height:1.6;}
+#ov-retry{padding:9px 24px;border-radius:8px;background:#D4826A;border:none;color:#fff;cursor:pointer;font-size:13px;font-family:inherit;display:none;margin-top:4px;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+#app{display:none;flex-direction:column;height:100%;}
+
+/* HEADER */
+#header{background:#fff;border-bottom:1px solid #EDE4DF;padding:10px 22px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px;}
+#h-title{font-family:'Playfair Display',serif;font-size:19px;color:#6B3F2E;line-height:1;}
+#h-sub{font-size:9px;color:#C4A99E;letter-spacing:1.5px;margin-top:2px;}
+.h-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.sc{background:#FAF5F2;border:1px solid #EDE4DF;border-radius:9px;padding:5px 13px;text-align:center;min-width:65px;}
+.sc.hot{background:#FFF0EB;border-color:#F5C5B0;}
+.sv{font-size:16px;font-weight:700;color:#7B4A3A;line-height:1;}
+.sc.hot .sv{color:#C0533A;}
+.sl_{font-size:9px;color:#C4A99E;margin-top:1px;}
+#btn-ref{padding:6px 12px;border-radius:7px;border:1px solid #EDE4DF;background:#fff;cursor:pointer;font-size:11px;color:#B8A49E;font-family:inherit;}
+#btn-ref:hover{background:#FFF8F5;}
+
+/* LAYOUT */
+#body{display:flex;flex:1;overflow:hidden;}
+
+/* SIDEBAR */
+#sidebar{width:220px;flex-shrink:0;background:#fff;border-right:1px solid #EDE4DF;padding:12px 12px;overflow-y:auto;}
+.sec{margin-bottom:13px;}
+.sec-t{font-size:9px;letter-spacing:2px;color:#C4A99E;font-weight:700;margin-bottom:6px;}
+.pills{display:flex;flex-wrap:wrap;gap:4px;}
+.pill{padding:3px 9px;border-radius:20px;font-size:10.5px;font-family:inherit;cursor:pointer;border:1.5px solid #E2D5CF;background:transparent;color:#B8A49E;font-weight:400;transition:all .15s;user-select:none;}
+.pill.on{background:#FFDDD0;border-color:#D4826A;color:#7B3F2E;font-weight:600;}
+/* category tab pills */
+.cat-tabs{display:flex;gap:5px;margin-bottom:6px;}
+.cat-tab{flex:1;padding:6px 4px;border-radius:8px;font-size:10.5px;cursor:pointer;border:1.5px solid #E2D5CF;background:transparent;color:#B8A49E;font-weight:400;font-family:inherit;transition:all .15s;text-align:center;}
+.cat-tab.on{background:#FFDDD0;border-color:#D4826A;color:#7B3F2E;font-weight:600;}
+.qlinks{display:flex;gap:8px;margin-top:5px;}
+.ql{font-size:10px;color:#D4826A;cursor:pointer;text-decoration:underline;}
+/* top states */
+.br{display:flex;align-items:center;gap:6px;margin-bottom:5px;}
+.br-ab{width:22px;font-size:10px;font-weight:600;color:#9B7060;flex-shrink:0;}
+.br-tr{flex:1;height:6px;background:#F5EDE8;border-radius:3px;overflow:hidden;}
+.br-fi{height:100%;border-radius:3px;transition:width .4s;}
+.br-n{width:20px;font-size:10px;color:#C4A99E;text-align:right;flex-shrink:0;}
+
+/* MAP */
+#map-wrap{flex:1;position:relative;overflow:hidden;background:#F7F9FA;padding:14px 18px;}
+#map-svg{width:100%;height:100%;}
+.sp{cursor:pointer;stroke:#ffffff;stroke-width:0.8;transition:filter .18s,stroke-width .18s;}
+.sp:hover{filter:brightness(.82) drop-shadow(0 3px 10px rgba(0,80,0,.25));stroke-width:2;}
+.sl{pointer-events:none;user-select:none;font-family:'Inter',sans-serif;font-size:9px;font-weight:600;}
+
+/* LEGEND */
+#legend{position:absolute;bottom:20px;right:22px;background:rgba(255,255,255,.95);backdrop-filter:blur(8px);border-radius:10px;padding:10px 15px;border:1px solid #EDE4DF;box-shadow:0 4px 20px rgba(120,60,40,.06);}
+.leg-t{font-size:9px;letter-spacing:1.5px;color:#C4A99E;font-weight:700;margin-bottom:6px;}
+.leg-row{display:flex;align-items:center;gap:7px;}
+#leg-grad{width:120px;height:8px;border-radius:4px;}
+.leg-n{font-size:10px;color:#C4A99E;}
+
+/* TOOLTIP */
+#tt{position:fixed;pointer-events:none;display:none;z-index:500;background:#fff;border:1px solid #EEE5E0;border-radius:14px;padding:15px 17px;min-width:205px;max-width:245px;box-shadow:0 10px 36px rgba(120,60,40,.12);}
+#tt-name{font-family:'Playfair Display',serif;font-size:16px;color:#6B3F2E;margin-bottom:2px;}
+#tt-cnt{font-size:24px;font-weight:700;color:#D94F35;line-height:1;margin-bottom:10px;}
+#tt-cnt span{font-size:11px;color:#C4A99E;font-weight:400;margin-left:4px;}
+.tt-sh{font-size:9px;letter-spacing:1.5px;color:#C4A99E;font-weight:700;margin:7px 0 4px;}
+.tt-r{display:flex;justify-content:space-between;font-size:10.5px;margin-bottom:3px;gap:12px;}
+.tt-k{color:#9B7060;}.tt-k.d{color:#C4A99E;}.tt-v{font-weight:600;color:#5A3020;}
+</style>
+</head>
+<body>
+
+<div id="overlay">
+  <div id="ov-icon">🗺️</div>
+  <div id="ov-title">Cold Chain Complaint Map</div>
+  <div id="ov-sub">Connecting to Supabase…</div>
+  <div id="ov-error"></div>
+  <button id="ov-retry" onclick="init()">↻ Retry</button>
+</div>
+
+<div id="app">
+  <div id="header">
+    <div>
+      <div id="h-title">Cold Chain Complaint Map</div>
+      <div id="h-sub">MARLEY SPOON · DINNERLY · BISTROMD · LIVE</div>
+    </div>
+    <div class="h-right">
+      <div class="sc"><div class="sv" id="s-total">0</div><div class="sl_">complaints</div></div>
+      <div class="sc"><div class="sv" id="s-states">0</div><div class="sl_">states</div></div>
+      <div class="sc hot"><div class="sv" id="s-top">—</div><div class="sl_" id="s-top-l">hottest</div></div>
+      <button id="btn-ref" onclick="refresh()">↻ <span id="ref-t"></span></button>
+    </div>
+  </div>
+
+  <div id="body">
+    <div id="sidebar">
+
+      <!-- COMPLAINT CATEGORY TABS -->
+      <div class="sec">
+        <div class="sec-t">COMPLAINT TYPE</div>
+        <div class="cat-tabs">
+          <button class="cat-tab on" id="ct-all"  onclick="setCat('all')">All</button>
+          <button class="cat-tab"    id="ct-pkg"  onclick="setCat('pkg')">Packaging</button>
+          <button class="cat-tab"    id="ct-log"  onclick="setCat('log')">Logistics</button>
+        </div>
+      </div>
+
+      <!-- SUBTYPE (shown for pkg or all) -->
+      <div class="sec" id="sec-sub">
+        <div class="sec-t">SUBTYPE</div>
+        <div class="pills" id="p-sub"></div>
+      </div>
+
+      <!-- WEEK -->
+      <div class="sec">
+        <div class="sec-t">DELIVERY WEEK</div>
+        <div class="pills" id="p-weeks"></div>
+        <div class="qlinks">
+          <span class="ql" onclick="rolling4()">Rolling 4W</span>
+          <span class="ql" onclick="allW()">All</span>
+        </div>
+      </div>
+
+      <!-- BRAND -->
+      <div class="sec">
+        <div class="sec-t">BRAND</div>
+        <div class="pills" id="p-brands"></div>
+      </div>
+
+      <!-- FC — hidden when only BMD selected -->
+      <div class="sec" id="sec-fc">
+        <div class="sec-t">FULFILLMENT CENTER</div>
+        <div class="pills" id="p-fcs"></div>
+        <div id="fc-bmd-note" style="display:none;font-size:10px;color:#C4A99E;margin-top:4px;font-style:italic;">FC data not available for BistroMD</div>
+      </div>
+
+      <!-- SHIPPER -->
+      <div class="sec">
+        <div class="sec-t">SHIPPER</div>
+        <div class="pills" id="p-shippers"></div>
+      </div>
+
+      <!-- TOP STATES -->
+      <div class="sec">
+        <div class="sec-t">TOP STATES</div>
+        <div id="top-states"></div>
+      </div>
+
+    </div><!-- /sidebar -->
+
+    <div id="map-wrap">
+      <svg id="map-svg" viewBox="0 0 960 600"></svg>
+      <div id="legend">
+        <div class="leg-t">COMPLAINT DENSITY</div>
+        <div class="leg-row">
+          <span class="leg-n">0</span>
+          <div id="leg-grad"></div>
+          <span class="leg-n" id="leg-max">0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="tt">
+  <div id="tt-name"></div>
+  <div id="tt-cnt">0<span>complaints</span></div>
+  <div id="tt-body"></div>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+const SUPA_URL = 'https://ytaokfyfpkydprngkzer.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0YW9rZnlmcGt5ZHBybmdremVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxOTA1MjMsImV4cCI6MjA4Nzc2NjUyM30.h4y_4Zgk072iMHwmu8rDfBs_dsmyNi-46Ec70ybdanQ';
+const TABLE    = 'complaints';
+const COLS     = ['State','Delivery Week of Year','Brand','Production Site','Shipper','Complaint Category Raw','Complaint Subcategory','Region'];
+
+const BRAND_LABEL   = { ms:'Marley Spoon', dn:'Dinnerly', bmd:'BistroMD', bm:'BistroMD' };
+const SHIP_LABEL    = { fedex:'FedEx', lasership:'LaserShip', ontrac:'OnTrac', jitsu:'Jitsu' };
+const CAT_LABEL     = { LogisticsComplaint:'Logistics', PackagingAndInsulationComplaint:'Packaging', Unknown:'Unknown' };
+
+// Subtype → category inference (for BMD rows missing category)
+const PKG_SUBS = new Set(['Damaged Box','Damaged Ice Pack','Damaged Insulation','Damaged Packaging','Packaging Expectation','Thawed Ice / Warm Food']);
+const LOG_SUBS = new Set(['No Delivery','Not in Time Delivery','Delivery Instructions Not Followed','Delivery Mistake','Driver Behaviour Issue','Stolen Box','Wrong Address']);
+
+function inferCategory(cat, subtype) {
+  if (cat && cat !== 'Unknown') return cat;
+  if (PKG_SUBS.has(subtype)) return 'PackagingAndInsulationComplaint';
+  if (LOG_SUBS.has(subtype)) return 'LogisticsComplaint';
+  return 'Unknown';
+}
+
+// Normalize subtypes — deduplicate variants, unify naming
+function normalizeSubtype(s) {
+  if (!s) return 'Other';
+  s = s.trim();
+  // Deduplicate variants
+  if (s === 'Thawed Ice/Warm Food') return 'Thawed Ice / Warm Food';
+  if (s === 'Damaged Box') return 'Damaged Packaging'; // merge box/packaging
+  return s;
+}
+
+// ── LOOKUPS ───────────────────────────────────────────────────────────────────
+const STATE_TO_ABBR = {
+  'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
+  'Colorado':'CO','Connecticut':'CT','Delaware':'DE','District of Columbia':'DC',
+  'Florida':'FL','Georgia':'GA','Hawaii':'HI','Idaho':'ID','Illinois':'IL',
+  'Indiana':'IN','Iowa':'IA','Kansas':'KS','Kentucky':'KY','Louisiana':'LA',
+  'Maine':'ME','Maryland':'MD','Massachusetts':'MA','Michigan':'MI','Minnesota':'MN',
+  'Mississippi':'MS','Missouri':'MO','Montana':'MT','Nebraska':'NE','Nevada':'NV',
+  'New Hampshire':'NH','New Jersey':'NJ','New Mexico':'NM','New York':'NY',
+  'North Carolina':'NC','North Dakota':'ND','Ohio':'OH','Oklahoma':'OK','Oregon':'OR',
+  'Pennsylvania':'PA','Rhode Island':'RI','South Carolina':'SC','South Dakota':'SD',
+  'Tennessee':'TN','Texas':'TX','Utah':'UT','Vermont':'VT','Virginia':'VA',
+  'Washington':'WA','West Virginia':'WV','Wisconsin':'WI','Wyoming':'WY'
+};
+const ABBR_TO_NAME = Object.fromEntries(Object.entries(STATE_TO_ABBR).map(([n,a])=>[a,n]));
+const FIPS = {
+  '01':'AL','02':'AK','04':'AZ','05':'AR','06':'CA','08':'CO','09':'CT','10':'DE',
+  '11':'DC','12':'FL','13':'GA','15':'HI','16':'ID','17':'IL','18':'IN','19':'IA',
+  '20':'KS','21':'KY','22':'LA','23':'ME','24':'MD','25':'MA','26':'MI','27':'MN',
+  '28':'MS','29':'MO','30':'MT','31':'NE','32':'NV','33':'NH','34':'NJ','35':'NM',
+  '36':'NY','37':'NC','38':'ND','39':'OH','40':'OK','41':'OR','42':'PA','44':'RI',
+  '45':'SC','46':'SD','47':'TN','48':'TX','49':'UT','50':'VT','51':'VA','53':'WA',
+  '54':'WV','55':'WI','56':'WY'
+};
+
+// ── COLORS — pastel green → yellow → red ─────────────────────────────────────
+// light mint → soft yellow-green → amber → orange → red
+const STOPS = [
+  [240,252,240],  // very light mint (near white)
+  [180,230,160],  // soft pastel green
+  [255,235,100],  // pastel yellow
+  [255,165, 60],  // warm orange
+  [210,  40, 40], // strong red
+];
+function heatColor(v, max) {
+  if (!v || max === 0) return '#F0FCF0';
+  const t   = Math.pow(v / max, 0.5);
+  const seg = t * (STOPS.length - 1);
+  const i   = Math.min(Math.floor(seg), STOPS.length - 2);
+  const f   = seg - i;
+  const [r1,g1,b1] = STOPS[i], [r2,g2,b2] = STOPS[i+1];
+  return `rgb(${~~(r1+(r2-r1)*f)},${~~(g1+(g2-g1)*f)},${~~(b1+(b2-b1)*f)})`;
+}
+function txtColor(v, max) { return (v/max) > 0.65 ? '#fff' : '#2D5A1B'; }
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let ALL = [];
+let catMode = 'all'; // 'all' | 'pkg' | 'log'
+let selWeeks=[], selBrands=[], selFCs=[], selShippers=[], selSubtypes=[];
+let allWeeks=[], allBrands=[], allFCs=[], allShippers=[];
+let pkgSubtypes=[], logSubtypes=[];
+let stateEls={}, labelEls={};
+
+// ── FETCH ─────────────────────────────────────────────────────────────────────
+async function fetchData() {
+  const url = `${SUPA_URL}/rest/v1/${TABLE}?select=${encodeURIComponent(COLS.join(','))}&limit=50000`;
+  const res = await fetch(url, { headers:{ apikey:SUPA_KEY, Authorization:`Bearer ${SUPA_KEY}` }});
+  if (!res.ok) throw new Error(`Supabase ${res.status}: ${res.statusText}`);
+  return res.json();
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+async function init() {
+  show('ov-error','none'); show('ov-retry','none');
+  document.getElementById('overlay').style.display='flex';
+  document.getElementById('app').style.display='none';
+  document.getElementById('ov-icon').textContent='🗺️';
+  document.getElementById('ov-icon').style.animation='pulse 1.6s ease-in-out infinite';
+
+  try {
+    setSub('Fetching data from Supabase…');
+    const raw = await fetchData();
+
+    ALL = raw.map(r => {
+      const sub = normalizeSubtype((r['Complaint Subcategory']||'').trim());
+      const cat = inferCategory((r['Complaint Category Raw']||'').trim(), sub);
+      return {
+        stateName : (r['State']||'').trim(),
+        stateAbbr : STATE_TO_ABBR[(r['State']||'').trim()] || '',
+        week      : parseInt(r['Delivery Week of Year']) || 0,
+        brand     : normBrand((r['Brand']||'').trim().toLowerCase()),
+        fc        : (r['Production Site']||'').trim() || 'Unknown',
+        shipper   : (r['Shipper']||'').trim().toLowerCase() || 'unknown',
+        category  : cat,
+        subtype   : sub,
+        region    : (r['Region']||'').trim(),
+      };
+    }).filter(r => r.stateAbbr && r.week);
+
+    const uniq = fn => [...new Set(ALL.map(fn))].filter(Boolean).sort();
+    allWeeks    = uniq(r=>r.week).sort((a,b)=>a-b);
+    allBrands   = uniq(r=>r.brand);
+    allFCs      = uniq(r=>r.fc).filter(f=>f!=='Unknown');
+    allShippers = uniq(r=>r.shipper).filter(s=>s!=='unknown');
+    pkgSubtypes = [...new Set(ALL.filter(r=>r.category==='PackagingAndInsulationComplaint').map(r=>r.subtype))].filter(Boolean).sort();
+    logSubtypes = [...new Set(ALL.filter(r=>r.category==='LogisticsComplaint').map(r=>r.subtype))].filter(Boolean).sort();
+
+    selWeeks    = allWeeks.slice(-4);
+    selBrands   = [...allBrands];
+    selFCs      = [...allFCs];
+    selShippers = [...allShippers];
+    selSubtypes = [...pkgSubtypes, ...logSubtypes];
+
+    setSub('Drawing map…');
+    await drawMap();
+    buildFilters();
+    render();
+
+    document.getElementById('overlay').style.display='none';
+    document.getElementById('app').style.display='flex';
+    document.getElementById('ref-t').textContent = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  } catch(e) {
+    document.getElementById('ov-error').textContent = `Error: ${e.message}`;
+    show('ov-error','block'); show('ov-retry','inline-block');
+    setSub('Could not load data.');
+    document.getElementById('ov-icon').textContent='⚠️';
+    document.getElementById('ov-icon').style.animation='none';
+  }
+}
+
+function normBrand(b) { return b==='bm'?'bmd':b; }
+function setSub(t)     { document.getElementById('ov-sub').textContent=t; }
+function show(id,v)    { document.getElementById(id).style.display=v; }
+
+async function refresh() {
+  await init();
+}
+
+// ── MAP ───────────────────────────────────────────────────────────────────────
+let geoFeatures=[];
+
+async function drawMap() {
+  const us      = await fetch('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json').then(r=>r.json());
+  const states  = topojson.feature(us, us.objects.states);
+  const borders = topojson.mesh(us, us.objects.states, (a,b)=>a!==b);
+  const nation  = topojson.feature(us, us.objects.nation);
+  const proj    = d3.geoAlbersUsa().fitSize([960,600], states);
+  const path    = d3.geoPath().projection(proj);
+
+  geoFeatures = states.features.map(f=>{
+    const fips=String(f.id).padStart(2,'0');
+    const abbr=FIPS[fips]||'';
+    const [cx,cy]=path.centroid(f);
+    return { abbr, dPath:path(f), cx, cy };
+  }).filter(f=>f.dPath&&f.abbr);
+
+  const svg = document.getElementById('map-svg');
+  svg.innerHTML='';
+
+  const ns='http://www.w3.org/2000/svg';
+  const mk=(tag,attrs)=>{ const e=document.createElementNS(ns,tag); Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v)); return e; };
+
+  // White/near-white background
+  svg.appendChild(mk('rect',{x:0,y:0,width:960,height:600,fill:'#F7F9FA'}));
+
+  // Nation outline — light fill so states pop, clear border
+  svg.appendChild(mk('path',{d:path(nation),fill:'#E8EEF5',stroke:'#8AABCC','stroke-width':'2.5'}));
+
+  const SKIP=new Set(['RI','DE','DC','CT','NJ','NH','VT','MD','MA']);
+  stateEls={}; labelEls={};
+
+  geoFeatures.forEach(({abbr,dPath,cx,cy})=>{
+    const g=document.createElementNS(ns,'g');
+
+    const p=mk('path',{d:dPath,class:'sp',fill:'#F0FCF0'});
+    p.addEventListener('mouseenter', e=>showTT(abbr));
+    p.addEventListener('mouseleave', hideTT);
+    g.appendChild(p);
+    stateEls[abbr]=p;
+
+    if (!SKIP.has(abbr)&&cx&&cy&&!isNaN(cx)) {
+      const t=mk('text',{x:cx,y:cy+4,'text-anchor':'middle',class:'sl',fill:'#7B4F42','data-abbr':abbr});
+      t.textContent=abbr;
+      g.appendChild(t);
+      labelEls[abbr]=t;
+    }
+    svg.appendChild(g);
+  });
+
+  // Borders on top — crisp white lines between states
+  svg.appendChild(mk('path',{d:path(borders),fill:'none',stroke:'#ffffff','stroke-width':'1.2','pointer-events':'none'}));
+  // Outer nation border on top for clean edge
+  svg.appendChild(mk('path',{d:path(nation),fill:'none',stroke:'#7A9FBF','stroke-width':'2','pointer-events':'none'}));
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function getFiltered() {
+  return ALL.filter(r=>{
+    if (catMode==='pkg' && r.category!=='PackagingAndInsulationComplaint') return false;
+    if (catMode==='log' && r.category!=='LogisticsComplaint') return false;
+    if (!selWeeks.includes(r.week))     return false;
+    if (!selBrands.includes(r.brand))   return false;
+    if (!selFCs.includes(r.fc) && r.fc!=='Unknown' && r.brand!=='bmd') return false;
+    if (!selShippers.includes(r.shipper) && r.shipper!=='unknown') return false;
+    // Only filter by subtype if user has deselected something (not all selected)
+    const currentSubs = catMode==='pkg' ? pkgSubtypes : catMode==='log' ? logSubtypes : [...pkgSubtypes,...logSubtypes];
+    const allSelected = currentSubs.every(s => selSubtypes.includes(s));
+    if (!allSelected && !selSubtypes.includes(r.subtype)) return false;
+    return true;
+  });
+}
+
+function render() {
+  const filtered = getFiltered();
+  const counts   = {};
+  filtered.forEach(r=>{ if(r.stateAbbr) counts[r.stateAbbr]=(counts[r.stateAbbr]||0)+1; });
+  const max    = Math.max(...Object.values(counts),1);
+  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+
+  // Color states
+  geoFeatures.forEach(({abbr})=>{
+    const p=stateEls[abbr];
+    if(p) p.setAttribute('fill', heatColor(counts[abbr]||0, max));
+    const l=labelEls[abbr];
+    if(l) l.setAttribute('fill', txtColor(counts[abbr]||0, max));
+  });
+
+  // Header
+  document.getElementById('s-total').textContent  = filtered.length.toLocaleString();
+  document.getElementById('s-states').textContent = Object.keys(counts).length;
+  if(sorted[0]){
+    document.getElementById('s-top').textContent  = sorted[0][0];
+    document.getElementById('s-top-l').textContent= `${sorted[0][1]} complaints`;
+  } else {
+    document.getElementById('s-top').textContent  = '—';
+    document.getElementById('s-top-l').textContent= 'hottest state';
+  }
+
+  // Legend
+  document.getElementById('leg-max').textContent=max;
+  document.getElementById('leg-grad').style.background=
+    'linear-gradient(to right,#F0FCF0,#B4E6A0,#FFEB64,#FFA53C,#D22828)';
+
+  // Top states
+  const ts=document.getElementById('top-states');
+  ts.innerHTML='';
+  sorted.slice(0,8).forEach(([abbr,count])=>{
+    const pct=(count/sorted[0][1]*100).toFixed(0);
+    ts.innerHTML+=`<div class="br">
+      <div class="br-ab">${abbr}</div>
+      <div class="br-tr"><div class="br-fi" style="width:${pct}%;background:${heatColor(count,max)};"></div></div>
+      <div class="br-n">${count}</div>
+    </div>`;
+  });
+}
+
+// ── FILTERS ───────────────────────────────────────────────────────────────────
+function buildFilters() {
+  makePills('p-weeks',    allWeeks,    selWeeks,    w=>toggleArr(selWeeks,w),    w=>`CW${w}`);
+  makePills('p-brands',   allBrands,   selBrands,   b=>{ toggleArr(selBrands,b); updateFCVisibility(); }, b=>BRAND_LABEL[b]||b);
+  makePills('p-fcs',      allFCs,      selFCs,      f=>toggleArr(selFCs,f));
+  makePills('p-shippers', allShippers, selShippers, s=>toggleArr(selShippers,s), s=>SHIP_LABEL[s]||s);
+  updateSubtypePills();
+  updateFCVisibility();
+}
+
+function updateFCVisibility() {
+  // If ONLY bmd is selected, hide FC pills and show note
+  const onlyBMD = selBrands.length===1 && selBrands[0]==='bmd';
+  const allBMD  = selBrands.every(b=>b==='bmd');
+  document.getElementById('p-fcs').style.display        = allBMD ? 'none' : '';
+  document.getElementById('fc-bmd-note').style.display  = allBMD ? 'block' : 'none';
+}
+
+function updateSubtypePills() {
+  let subs = catMode==='pkg' ? pkgSubtypes : catMode==='log' ? logSubtypes : [...pkgSubtypes,...logSubtypes];
+  subs = [...new Set(subs)].sort();
+  // reset selection to all when category changes
+  selSubtypes = [...subs];
+  makePills('p-sub', subs, selSubtypes, s=>toggleArr(selSubtypes,s));
+}
+
+function makePills(id, opts, sel, onClick, fmt) {
+  const el=document.getElementById(id);
+  el.innerHTML='';
+  opts.forEach(o=>{
+    const b=document.createElement('button');
+    b.className='pill'+(sel.includes(o)?' on':'');
+    b.textContent=fmt?fmt(o):o;
+    b.onclick=()=>{ onClick(o); refreshPills(id,opts,sel,fmt); render(); };
+    el.appendChild(b);
+  });
+}
+
+function refreshPills(id,opts,sel,fmt) {
+  const el=document.getElementById(id);
+  [...el.children].forEach((b,i)=>{ b.className='pill'+(sel.includes(opts[i])?' on':''); });
+}
+
+function toggleArr(arr,item) {
+  const i=arr.indexOf(item);
+  if(i>-1){ if(arr.length>1) arr.splice(i,1); }
+  else arr.push(item);
+}
+
+function setCat(mode) {
+  catMode=mode;
+  ['all','pkg','log'].forEach(m=>{
+    document.getElementById(`ct-${m}`).className='cat-tab'+(mode===m?' on':'');
+  });
+  updateSubtypePills();
+  render();
+}
+
+function rolling4(){ selWeeks.length=0; allWeeks.slice(-4).forEach(w=>selWeeks.push(w)); refreshPills('p-weeks',allWeeks,selWeeks,w=>`CW${w}`); render(); }
+function allW()    { selWeeks.length=0; allWeeks.forEach(w=>selWeeks.push(w));           refreshPills('p-weeks',allWeeks,selWeeks,w=>`CW${w}`); render(); }
+
+// ── TOOLTIP ───────────────────────────────────────────────────────────────────
+let mx=0,my=0;
+document.addEventListener('mousemove',e=>{ mx=e.clientX; my=e.clientY; moveTT(); });
+
+function showTT(abbr) {
+  const rows=getFiltered().filter(r=>r.stateAbbr===abbr);
+  if(!rows.length){ hideTT(); return; }
+
+  const tally=key=>{ const m={}; rows.forEach(r=>{m[r[key]]=(m[r[key]]||0)+1;}); return Object.entries(m).sort((a,b)=>b[1]-a[1]); };
+  const bySubtype=tally('subtype'), byShipper=tally('shipper'), byBrand=tally('brand'), byCat=tally('category');
+
+  document.getElementById('tt-name').textContent=ABBR_TO_NAME[abbr]||abbr;
+  document.getElementById('tt-cnt').innerHTML=`${rows.length}<span>complaints</span>`;
+
+  let html='';
+  if(byCat.length>1||true){
+    html+=`<div class="tt-sh">BY TYPE</div>`;
+    html+=byCat.map(([k,v])=>`<div class="tt-r"><span class="tt-k">${CAT_LABEL[k]||k}</span><span class="tt-v">${v}</span></div>`).join('');
+  }
+  if(bySubtype.length){
+    html+=`<div class="tt-sh">BY SUBTYPE</div>`;
+    html+=bySubtype.slice(0,4).map(([k,v])=>`<div class="tt-r"><span class="tt-k">${k}</span><span class="tt-v">${v}</span></div>`).join('');
+  }
+  if(byShipper.length){
+    html+=`<div class="tt-sh">BY SHIPPER</div>`;
+    html+=byShipper.map(([k,v])=>`<div class="tt-r"><span class="tt-k d">${SHIP_LABEL[k]||k}</span><span class="tt-v">${v}</span></div>`).join('');
+  }
+  if(byBrand.length){
+    html+=`<div class="tt-sh">BY BRAND</div>`;
+    html+=byBrand.map(([k,v])=>`<div class="tt-r"><span class="tt-k d">${BRAND_LABEL[k]||k}</span><span class="tt-v">${v}</span></div>`).join('');
+  }
+
+  document.getElementById('tt-body').innerHTML=html;
+  document.getElementById('tt').style.display='block';
+  moveTT();
+}
+
+function moveTT() {
+  const tt=document.getElementById('tt');
+  if(tt.style.display==='none') return;
+  const W=window.innerWidth,H=window.innerHeight,tw=tt.offsetWidth,th=tt.offsetHeight;
+  let l=mx+16, t=my-12;
+  if(l+tw>W-8) l=mx-tw-10;
+  if(t+th>H-8) t=H-th-8;
+  if(t<8) t=8;
+  tt.style.left=l+'px'; tt.style.top=t+'px';
+}
+
+function hideTT(){ document.getElementById('tt').style.display='none'; }
+
+// ── GO ────────────────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
