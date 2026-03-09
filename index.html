@@ -373,10 +373,18 @@ let weekDDOpen=false;
 
 // ── FETCH ─────────────────────────────────────────────────────────────────────
 async function fetchTable(table, cols) {
-  const url = `${SUPA_URL}/rest/v1/${table}?select=${encodeURIComponent(cols.join(','))}&limit=100000`;
-  const res = await fetch(url,{headers:{apikey:SUPA_KEY,Authorization:`Bearer ${SUPA_KEY}`}});
-  if (!res.ok) throw new Error(`Supabase ${res.status} on ${table}: ${res.statusText}`);
-  return res.json();
+  const PAGE = 1000;
+  let all = [], from = 0;
+  while (true) {
+    const url = `${SUPA_URL}/rest/v1/${table}?select=${encodeURIComponent(cols.join(','))}&limit=${PAGE}&offset=${from}`;
+    const res = await fetch(url,{headers:{apikey:SUPA_KEY,Authorization:`Bearer ${SUPA_KEY}`, 'Range-Unit':'items', Range:`${from}-${from+PAGE-1}`}});
+    if (!res.ok) throw new Error(`Supabase ${res.status} on ${table}: ${res.statusText}`);
+    const batch = await res.json();
+    all = all.concat(batch);
+    if (batch.length < PAGE) break;
+    from += PAGE;
+  }
+  return all;
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
