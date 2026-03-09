@@ -7,81 +7,140 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-html,body{height:100%;font-family:'Inter',sans-serif;background:#F9F5F2;color:#4A3228;overflow:hidden;}
-::-webkit-scrollbar{width:4px;}
-::-webkit-scrollbar-thumb{background:#E8D5CC;border-radius:4px;}
+html,body{height:100%;font-family:'Inter',sans-serif;background:#F4F6F8;color:#2C3E50;overflow:hidden;}
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-thumb{background:#D5E0E8;border-radius:4px;}
 
-#overlay{position:fixed;inset:0;background:#F9F5F2;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:10px;}
-#ov-icon{font-size:48px;animation:pulse 1.6s ease-in-out infinite;}
-#ov-title{font-family:'Playfair Display',serif;font-size:20px;color:#6B3F2E;}
-#ov-sub{font-size:13px;color:#C4A99E;}
-#ov-error{font-size:12px;color:#C0533A;background:#FFF0EB;padding:10px 20px;border-radius:8px;max-width:460px;text-align:center;display:none;line-height:1.6;}
-#ov-retry{padding:9px 24px;border-radius:8px;background:#D4826A;border:none;color:#fff;cursor:pointer;font-size:13px;font-family:inherit;display:none;margin-top:4px;}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+/* OVERLAY */
+#overlay{position:fixed;inset:0;background:#F4F6F8;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:12px;}
+#ov-icon{font-size:52px;animation:pulse 1.6s ease-in-out infinite;}
+#ov-title{font-family:'Playfair Display',serif;font-size:22px;color:#2C3E50;}
+#ov-sub{font-size:13px;color:#95A5B5;}
+#ov-error{font-size:12px;color:#C0392B;background:#FDECEA;padding:12px 22px;border-radius:10px;max-width:460px;text-align:center;display:none;line-height:1.7;}
+#ov-retry{padding:9px 26px;border-radius:8px;background:#3498DB;border:none;color:#fff;cursor:pointer;font-size:13px;font-family:inherit;display:none;margin-top:4px;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
 
 #app{display:none;flex-direction:column;height:100%;}
 
 /* HEADER */
-#header{background:#fff;border-bottom:1px solid #EDE4DF;padding:10px 22px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px;}
-#h-title{font-family:'Playfair Display',serif;font-size:19px;color:#6B3F2E;line-height:1;}
-#h-sub{font-size:9px;color:#C4A99E;letter-spacing:1.5px;margin-top:2px;}
-.h-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
-.sc{background:#FAF5F2;border:1px solid #EDE4DF;border-radius:9px;padding:5px 13px;text-align:center;min-width:65px;}
-.sc.hot{background:#FFF0EB;border-color:#F5C5B0;}
-.sv{font-size:16px;font-weight:700;color:#7B4A3A;line-height:1;}
-.sc.hot .sv{color:#C0533A;}
-.sl_{font-size:9px;color:#C4A99E;margin-top:1px;}
-#btn-ref{padding:6px 12px;border-radius:7px;border:1px solid #EDE4DF;background:#fff;cursor:pointer;font-size:11px;color:#B8A49E;font-family:inherit;}
-#btn-ref:hover{background:#FFF8F5;}
+#header{background:#fff;border-bottom:1px solid #E8EEF3;padding:11px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,.04);}
+#h-left{}
+#h-title{font-family:'Playfair Display',serif;font-size:20px;color:#2C3E50;line-height:1.1;}
+#h-sub{font-size:9px;color:#A0B0BE;letter-spacing:1.8px;margin-top:3px;text-transform:uppercase;}
+#h-right{display:flex;align-items:center;gap:16px;}
+#h-updated{font-size:11px;color:#A0B0BE;}
+#h-updated strong{color:#7F8C9A;font-weight:600;}
+
+/* COUNT/RATE TOGGLE */
+#mode-toggle{display:flex;background:#EEF2F5;border-radius:8px;padding:3px;gap:2px;}
+.mt-btn{padding:5px 14px;border-radius:6px;border:none;font-size:11px;font-family:inherit;cursor:pointer;font-weight:500;color:#95A5B5;background:transparent;transition:all .15s;}
+.mt-btn.on{background:#fff;color:#2C3E50;box-shadow:0 1px 4px rgba(0,0,0,.09);font-weight:600;}
 
 /* LAYOUT */
 #body{display:flex;flex:1;overflow:hidden;}
 
-/* SIDEBAR */
-#sidebar{width:220px;flex-shrink:0;background:#fff;border-right:1px solid #EDE4DF;padding:12px 12px;overflow-y:auto;}
-.sec{margin-bottom:13px;}
-.sec-t{font-size:9px;letter-spacing:2px;color:#C4A99E;font-weight:700;margin-bottom:6px;}
-.pills{display:flex;flex-wrap:wrap;gap:4px;}
-.pill{padding:3px 9px;border-radius:20px;font-size:10.5px;font-family:inherit;cursor:pointer;border:1.5px solid #E2D5CF;background:transparent;color:#B8A49E;font-weight:400;transition:all .15s;user-select:none;}
-.pill.on{background:#FFDDD0;border-color:#D4826A;color:#7B3F2E;font-weight:600;}
-/* category tab pills */
-.cat-tabs{display:flex;gap:5px;margin-bottom:6px;}
-.cat-tab{flex:1;padding:6px 4px;border-radius:8px;font-size:10.5px;cursor:pointer;border:1.5px solid #E2D5CF;background:transparent;color:#B8A49E;font-weight:400;font-family:inherit;transition:all .15s;text-align:center;}
-.cat-tab.on{background:#FFDDD0;border-color:#D4826A;color:#7B3F2E;font-weight:600;}
-.qlinks{display:flex;gap:8px;margin-top:5px;}
-.ql{font-size:10px;color:#D4826A;cursor:pointer;text-decoration:underline;}
-/* top states */
-.br{display:flex;align-items:center;gap:6px;margin-bottom:5px;}
-.br-ab{width:22px;font-size:10px;font-weight:600;color:#9B7060;flex-shrink:0;}
-.br-tr{flex:1;height:6px;background:#F5EDE8;border-radius:3px;overflow:hidden;}
-.br-fi{height:100%;border-radius:3px;transition:width .4s;}
-.br-n{width:20px;font-size:10px;color:#C4A99E;text-align:right;flex-shrink:0;}
+/* ── SIDEBAR ── */
+#sidebar{width:230px;flex-shrink:0;background:#fff;border-right:1px solid #E8EEF3;display:flex;flex-direction:column;overflow:hidden;}
+#sidebar-scroll{flex:1;overflow-y:auto;padding:0 0 8px;}
+
+/* Section */
+.sec{border-bottom:1px solid #F0F4F7;padding:14px 16px;}
+.sec:last-of-type{border-bottom:none;}
+.sec-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.sec-t{font-size:9px;letter-spacing:2.5px;color:#A0B0BE;font-weight:700;text-transform:uppercase;}
+.sec-action{font-size:10px;color:#3498DB;cursor:pointer;font-weight:500;}
+.sec-action:hover{text-decoration:underline;}
+
+/* Pills */
+.pills{display:flex;flex-wrap:wrap;gap:5px;}
+.pill{padding:4px 10px;border-radius:20px;font-size:10.5px;font-family:inherit;cursor:pointer;border:1.5px solid #D5E0E8;background:transparent;color:#95A5B5;font-weight:400;transition:all .15s;user-select:none;line-height:1.4;}
+.pill.on{background:#EBF5FF;border-color:#3498DB;color:#1A6FA8;font-weight:600;}
+
+/* Category tabs */
+.cat-tabs{display:flex;gap:6px;}
+.cat-tab{flex:1;padding:7px 4px;border-radius:8px;font-size:11px;cursor:pointer;border:1.5px solid #D5E0E8;background:transparent;color:#95A5B5;font-weight:400;font-family:inherit;transition:all .15s;text-align:center;}
+.cat-tab.on{background:#EBF5FF;border-color:#3498DB;color:#1A6FA8;font-weight:600;}
+
+/* Week dropdown */
+#week-dropdown-wrap{position:relative;}
+#week-select-btn{width:100%;padding:7px 12px;border-radius:8px;border:1.5px solid #D5E0E8;background:#fff;font-size:11px;font-family:inherit;color:#2C3E50;cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:border-color .15s;}
+#week-select-btn:hover{border-color:#3498DB;}
+#week-select-btn.open{border-color:#3498DB;}
+#week-chevron{font-size:10px;color:#A0B0BE;transition:transform .2s;}
+#week-chevron.open{transform:rotate(180deg);}
+#week-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1.5px solid #D5E0E8;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.1);z-index:200;overflow:hidden;}
+#week-dropdown.open{display:block;}
+.wk-quick{display:flex;gap:6px;padding:10px 12px;border-bottom:1px solid #F0F4F7;}
+.wk-qbtn{flex:1;padding:5px;border-radius:6px;border:1.5px solid #D5E0E8;background:transparent;font-size:10.5px;font-family:inherit;color:#3498DB;cursor:pointer;font-weight:500;text-align:center;transition:all .15s;}
+.wk-qbtn:hover{background:#EBF5FF;border-color:#3498DB;}
+.wk-list{max-height:180px;overflow-y:auto;padding:6px 0;}
+.wk-item{display:flex;align-items:center;gap:10px;padding:7px 14px;cursor:pointer;transition:background .1s;font-size:11px;color:#2C3E50;}
+.wk-item:hover{background:#F4F8FB;}
+.wk-item input[type=checkbox]{accent-color:#3498DB;width:13px;height:13px;cursor:pointer;}
+.wk-item.checked{color:#1A6FA8;font-weight:500;}
+#week-display{font-size:11px;color:#2C3E50;}
+
+/* Top states */
+.br{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+.br-ab{width:24px;font-size:10px;font-weight:700;color:#7F8C9A;flex-shrink:0;}
+.br-tr{flex:1;height:7px;background:#EEF2F5;border-radius:4px;overflow:hidden;}
+.br-fi{height:100%;border-radius:4px;transition:width .4s;}
+.br-n{width:42px;font-size:10px;color:#95A5B5;text-align:right;flex-shrink:0;}
+
+/* FEEDBACK BUTTON */
+#sidebar-footer{padding:12px 16px;border-top:1px solid #F0F4F7;flex-shrink:0;}
+#feedback-btn{width:100%;padding:9px;border-radius:8px;border:1.5px solid #D5E0E8;background:transparent;font-size:11px;font-family:inherit;color:#7F8C9A;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .2s;animation:subtlePulse 3s ease-in-out infinite;}
+#feedback-btn:hover{background:#F4F8FB;border-color:#3498DB;color:#3498DB;animation:none;}
+@keyframes subtlePulse{0%,100%{border-color:#D5E0E8;}50%{border-color:#A8C8E8;}}
+.fb-dot{width:6px;height:6px;border-radius:50%;background:#3498DB;animation:blink 2s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* FEEDBACK MODAL */
+#fb-modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:900;}
+#fb-modal.open{display:flex;}
+#fb-box{background:#fff;border-radius:16px;padding:28px;width:380px;box-shadow:0 20px 60px rgba(0,0,0,.15);}
+#fb-title{font-family:'Playfair Display',serif;font-size:18px;color:#2C3E50;margin-bottom:4px;}
+#fb-sub{font-size:12px;color:#95A5B5;margin-bottom:18px;line-height:1.5;}
+#fb-name,#fb-msg{width:100%;border:1.5px solid #D5E0E8;border-radius:8px;font-family:inherit;font-size:12px;color:#2C3E50;padding:10px 12px;outline:none;transition:border-color .15s;resize:none;}
+#fb-name{margin-bottom:10px;}
+#fb-name:focus,#fb-msg:focus{border-color:#3498DB;}
+#fb-msg{height:100px;}
+#fb-actions{display:flex;gap:10px;margin-top:14px;}
+#fb-cancel{flex:1;padding:10px;border-radius:8px;border:1.5px solid #D5E0E8;background:transparent;font-family:inherit;font-size:12px;color:#95A5B5;cursor:pointer;}
+#fb-send{flex:2;padding:10px;border-radius:8px;border:none;background:#3498DB;color:#fff;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:background .15s;}
+#fb-send:hover{background:#2980B9;}
+#fb-sent{display:none;text-align:center;padding:10px 0;}
+#fb-sent-icon{font-size:36px;margin-bottom:8px;}
+#fb-sent-msg{font-size:13px;color:#27AE60;font-weight:600;}
 
 /* MAP */
-#map-wrap{flex:1;position:relative;overflow:hidden;background:#F7F9FA;padding:14px 18px;}
+#map-wrap{flex:1;position:relative;overflow:hidden;background:#F4F6F8;padding:14px 18px;}
 #map-svg{width:100%;height:100%;}
 .sp{cursor:pointer;stroke:#ffffff;stroke-width:0.8;transition:filter .18s,stroke-width .18s;}
 .sp:hover{filter:brightness(.82) drop-shadow(0 3px 10px rgba(0,80,0,.25));stroke-width:2;}
 .sl{pointer-events:none;user-select:none;font-family:'Inter',sans-serif;font-size:9px;font-weight:600;}
 
 /* LEGEND */
-#legend{position:absolute;bottom:20px;right:22px;background:rgba(255,255,255,.95);backdrop-filter:blur(8px);border-radius:10px;padding:10px 15px;border:1px solid #EDE4DF;box-shadow:0 4px 20px rgba(120,60,40,.06);}
-.leg-t{font-size:9px;letter-spacing:1.5px;color:#C4A99E;font-weight:700;margin-bottom:6px;}
-.leg-row{display:flex;align-items:center;gap:7px;}
+#legend{position:absolute;bottom:20px;right:22px;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);border-radius:10px;padding:11px 16px;border:1px solid #E8EEF3;box-shadow:0 4px 20px rgba(0,0,0,.07);}
+.leg-t{font-size:9px;letter-spacing:1.8px;color:#A0B0BE;font-weight:700;margin-bottom:7px;text-transform:uppercase;}
+.leg-row{display:flex;align-items:center;gap:8px;}
 #leg-grad{width:120px;height:8px;border-radius:4px;}
-.leg-n{font-size:10px;color:#C4A99E;}
+.leg-n{font-size:10px;color:#A0B0BE;}
 
 /* TOOLTIP */
-#tt{position:fixed;pointer-events:none;display:none;z-index:500;background:#fff;border:1px solid #EEE5E0;border-radius:14px;padding:15px 17px;min-width:205px;max-width:245px;box-shadow:0 10px 36px rgba(120,60,40,.12);}
-#tt-name{font-family:'Playfair Display',serif;font-size:16px;color:#6B3F2E;margin-bottom:2px;}
-#tt-cnt{font-size:24px;font-weight:700;color:#D94F35;line-height:1;margin-bottom:10px;}
-#tt-cnt span{font-size:11px;color:#C4A99E;font-weight:400;margin-left:4px;}
-.tt-sh{font-size:9px;letter-spacing:1.5px;color:#C4A99E;font-weight:700;margin:7px 0 4px;}
-.tt-r{display:flex;justify-content:space-between;font-size:10.5px;margin-bottom:3px;gap:12px;}
-.tt-k{color:#9B7060;}.tt-k.d{color:#C4A99E;}.tt-v{font-weight:600;color:#5A3020;}
+#tt{position:fixed;pointer-events:none;display:none;z-index:500;background:#fff;border:1px solid #E8EEF3;border-radius:14px;padding:16px 18px;min-width:230px;max-width:270px;box-shadow:0 12px 40px rgba(0,0,0,.12);}
+#tt-name{font-family:'Playfair Display',serif;font-size:17px;color:#2C3E50;margin-bottom:3px;}
+#tt-headline{font-size:13px;font-weight:600;color:#2C3E50;margin-bottom:12px;line-height:1.4;}
+#tt-headline .cnt{color:#C0392B;font-size:20px;font-weight:700;margin-right:4px;}
+#tt-headline .pct{color:#27AE60;}
+.tt-section{margin-bottom:10px;}
+.tt-sh{font-size:9px;letter-spacing:2px;color:#A0B0BE;font-weight:700;text-transform:uppercase;margin-bottom:6px;}
+.tt-r{display:flex;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:1px solid #F4F6F8;gap:12px;}
+.tt-r:last-child{border-bottom:none;}
+.tt-k{color:#7F8C9A;}.tt-k.d{color:#A0B0BE;}.tt-v{font-weight:600;color:#2C3E50;}
 </style>
 </head>
 <body>
@@ -95,79 +154,103 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:#F9F5F2;color:#4
 </div>
 
 <div id="app">
+  <!-- HEADER -->
   <div id="header">
-    <div>
+    <div id="h-left">
       <div id="h-title">Cold Chain Complaint Map</div>
-      <div id="h-sub">MARLEY SPOON · DINNERLY · BISTROMD · LIVE</div>
+      <div id="h-sub">Marley Spoon · Dinnerly · BistroMD · Live</div>
     </div>
-    <div class="h-right">
-      <div class="sc"><div class="sv" id="s-total">0</div><div class="sl_">complaints</div></div>
-      <div class="sc"><div class="sv" id="s-states">0</div><div class="sl_">states</div></div>
-      <div class="sc hot"><div class="sv" id="s-top">—</div><div class="sl_" id="s-top-l">hottest</div></div>
-      <button id="btn-ref" onclick="refresh()">↻ <span id="ref-t"></span></button>
+    <div id="h-right">
+      <div id="h-updated">Data last updated: <strong id="last-sunday"></strong></div>
+      <div id="mode-toggle">
+        <button class="mt-btn on" id="mt-count" onclick="setMode('count')">Count</button>
+        <button class="mt-btn"    id="mt-rate"  onclick="setMode('rate')">Rate /1K</button>
+      </div>
     </div>
   </div>
 
   <div id="body">
+    <!-- SIDEBAR -->
     <div id="sidebar">
+      <div id="sidebar-scroll">
 
-      <!-- COMPLAINT CATEGORY TABS -->
-      <div class="sec">
-        <div class="sec-t">COMPLAINT TYPE</div>
-        <div class="cat-tabs">
-          <button class="cat-tab on" id="ct-all"  onclick="setCat('all')">All</button>
-          <button class="cat-tab"    id="ct-pkg"  onclick="setCat('pkg')">Packaging</button>
-          <button class="cat-tab"    id="ct-log"  onclick="setCat('log')">Logistics</button>
+        <!-- COMPLAINT TYPE -->
+        <div class="sec">
+          <div class="sec-header"><span class="sec-t">Complaint Type</span></div>
+          <div class="cat-tabs">
+            <button class="cat-tab on" id="ct-all" onclick="setCat('all')">All</button>
+            <button class="cat-tab"    id="ct-pkg" onclick="setCat('pkg')">Packaging</button>
+            <button class="cat-tab"    id="ct-log" onclick="setCat('log')">Logistics</button>
+          </div>
         </div>
-      </div>
 
-      <!-- SUBTYPE (shown for pkg or all) -->
-      <div class="sec" id="sec-sub">
-        <div class="sec-t">SUBTYPE</div>
-        <div class="pills" id="p-sub"></div>
-      </div>
-
-      <!-- WEEK -->
-      <div class="sec">
-        <div class="sec-t">DELIVERY WEEK</div>
-        <div class="pills" id="p-weeks"></div>
-        <div class="qlinks">
-          <span class="ql" onclick="rolling4()">Rolling 4W</span>
-          <span class="ql" onclick="allW()">All</span>
+        <!-- SUBTYPE -->
+        <div class="sec">
+          <div class="sec-header">
+            <span class="sec-t">Subtype</span>
+            <span class="sec-action" onclick="selAllSubs()">All</span>
+          </div>
+          <div class="pills" id="p-sub"></div>
         </div>
-      </div>
 
-      <!-- BRAND -->
-      <div class="sec">
-        <div class="sec-t">BRAND</div>
-        <div class="pills" id="p-brands"></div>
-      </div>
+        <!-- DELIVERY WEEK -->
+        <div class="sec">
+          <div class="sec-header"><span class="sec-t">Delivery Week</span></div>
+          <div id="week-dropdown-wrap">
+            <button id="week-select-btn" onclick="toggleWeekDD()">
+              <span id="week-display">Select weeks…</span>
+              <span id="week-chevron">▼</span>
+            </button>
+            <div id="week-dropdown">
+              <div class="wk-quick">
+                <button class="wk-qbtn" onclick="rolling4();closeWeekDD()">Last 4W</button>
+                <button class="wk-qbtn" onclick="allW();closeWeekDD()">All Weeks</button>
+              </div>
+              <div class="wk-list" id="wk-list"></div>
+            </div>
+          </div>
+        </div>
 
-      <!-- FC — hidden when only BMD selected -->
-      <div class="sec" id="sec-fc">
-        <div class="sec-t">FULFILLMENT CENTER</div>
-        <div class="pills" id="p-fcs"></div>
-        <div id="fc-bmd-note" style="display:none;font-size:10px;color:#C4A99E;margin-top:4px;font-style:italic;">FC data not available for BistroMD</div>
-      </div>
+        <!-- BRAND -->
+        <div class="sec">
+          <div class="sec-header">
+            <span class="sec-t">Brand</span>
+            <span class="sec-action" onclick="selAllBrands()">All</span>
+          </div>
+          <div class="pills" id="p-brands"></div>
+        </div>
 
-      <!-- SHIPPER -->
-      <div class="sec">
-        <div class="sec-t">SHIPPER</div>
-        <div class="pills" id="p-shippers"></div>
-      </div>
+        <!-- SHIPPER -->
+        <div class="sec">
+          <div class="sec-header">
+            <span class="sec-t">Shipper</span>
+            <span class="sec-action" onclick="selAllShippers()">All</span>
+          </div>
+          <div class="pills" id="p-shippers"></div>
+        </div>
 
-      <!-- TOP STATES -->
-      <div class="sec">
-        <div class="sec-t">TOP STATES</div>
-        <div id="top-states"></div>
-      </div>
+        <!-- TOP STATES -->
+        <div class="sec">
+          <div class="sec-header"><span class="sec-t" id="top-states-title">Top States</span></div>
+          <div id="top-states"></div>
+        </div>
 
+      </div><!-- /sidebar-scroll -->
+
+      <!-- FEEDBACK BUTTON -->
+      <div id="sidebar-footer">
+        <button id="feedback-btn" onclick="openFeedback()">
+          <div class="fb-dot"></div>
+          Feedback / Changes Needed
+        </button>
+      </div>
     </div><!-- /sidebar -->
 
+    <!-- MAP -->
     <div id="map-wrap">
       <svg id="map-svg" viewBox="0 0 960 600"></svg>
       <div id="legend">
-        <div class="leg-t">COMPLAINT DENSITY</div>
+        <div class="leg-t" id="leg-title">Complaint Count</div>
         <div class="leg-row">
           <span class="leg-n">0</span>
           <div id="leg-grad"></div>
@@ -178,43 +261,60 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:#F9F5F2;color:#4
   </div>
 </div>
 
+<!-- TOOLTIP -->
 <div id="tt">
   <div id="tt-name"></div>
-  <div id="tt-cnt">0<span>complaints</span></div>
+  <div id="tt-headline"></div>
   <div id="tt-body"></div>
+</div>
+
+<!-- FEEDBACK MODAL -->
+<div id="fb-modal">
+  <div id="fb-box">
+    <div id="fb-title">Share Feedback</div>
+    <div id="fb-sub">Spotted an issue or have a suggestion? We'll look into it.</div>
+    <div id="fb-form">
+      <input id="fb-name" type="text" placeholder="Your name (optional)"/>
+      <textarea id="fb-msg" placeholder="Describe the issue or change needed…"></textarea>
+      <div id="fb-actions">
+        <button id="fb-cancel" onclick="closeFeedback()">Cancel</button>
+        <button id="fb-send"   onclick="sendFeedback()">Send Feedback</button>
+      </div>
+    </div>
+    <div id="fb-sent">
+      <div id="fb-sent-icon">✅</div>
+      <div id="fb-sent-msg">Feedback sent! Thanks.</div>
+    </div>
+  </div>
 </div>
 
 <script>
 // ── CONFIG ────────────────────────────────────────────────────────────────────
-const SUPA_URL = 'https://ytaokfyfpkydprngkzer.supabase.co';
-const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0YW9rZnlmcGt5ZHBybmdremVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxOTA1MjMsImV4cCI6MjA4Nzc2NjUyM30.h4y_4Zgk072iMHwmu8rDfBs_dsmyNi-46Ec70ybdanQ';
-const TABLE    = 'complaints';
-const COLS     = ['State','Delivery Week of Year','Brand','Production Site','Shipper','Complaint Category Raw','Complaint Subcategory','Region'];
+const SUPA_URL      = 'https://ytaokfyfpkydprngkzer.supabase.co';
+const SUPA_KEY      = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0YW9rZnlmcGt5ZHBybmdremVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxOTA1MjMsImV4cCI6MjA4Nzc2NjUyM30.h4y_4Zgk072iMHwmu8rDfBs_dsmyNi-46Ec70ybdanQ';
+const FEEDBACK_EMAIL = 'prajwal.mahadevu@marleyspoon.com';
 
-const BRAND_LABEL   = { ms:'Marley Spoon', dn:'Dinnerly', bmd:'BistroMD', bm:'BistroMD' };
-const SHIP_LABEL    = { fedex:'FedEx', lasership:'LaserShip', ontrac:'OnTrac', jitsu:'Jitsu' };
-const CAT_LABEL     = { LogisticsComplaint:'Logistics', PackagingAndInsulationComplaint:'Packaging', Unknown:'Unknown' };
+const BRAND_LABEL = { ms:'Marley Spoon', dn:'Dinnerly', bmd:'BistroMD', bm:'BistroMD' };
+const SHIP_LABEL  = { fedex:'FedEx', lasership:'LaserShip', ontrac:'OnTrac', jitsu:'Jitsu' };
+const CAT_LABEL   = { LogisticsComplaint:'Logistics', PackagingAndInsulationComplaint:'Packaging', Unknown:'Unknown' };
 
-// Subtype → category inference (for BMD rows missing category)
 const PKG_SUBS = new Set(['Damaged Box','Damaged Ice Pack','Damaged Insulation','Damaged Packaging','Packaging Expectation','Thawed Ice / Warm Food']);
 const LOG_SUBS = new Set(['No Delivery','Not in Time Delivery','Delivery Instructions Not Followed','Delivery Mistake','Driver Behaviour Issue','Stolen Box','Wrong Address']);
 
-function inferCategory(cat, subtype) {
+function inferCategory(cat, sub) {
   if (cat && cat !== 'Unknown') return cat;
-  if (PKG_SUBS.has(subtype)) return 'PackagingAndInsulationComplaint';
-  if (LOG_SUBS.has(subtype)) return 'LogisticsComplaint';
+  if (PKG_SUBS.has(sub)) return 'PackagingAndInsulationComplaint';
+  if (LOG_SUBS.has(sub)) return 'LogisticsComplaint';
   return 'Unknown';
 }
-
-// Normalize subtypes — deduplicate variants, unify naming
 function normalizeSubtype(s) {
   if (!s) return 'Other';
   s = s.trim();
-  // Deduplicate variants
   if (s === 'Thawed Ice/Warm Food') return 'Thawed Ice / Warm Food';
-  if (s === 'Damaged Box') return 'Damaged Packaging'; // merge box/packaging
+  if (s === 'Damaged Box') return 'Damaged Packaging';
   return s;
 }
+function normBrand(b) { return b === 'bm' ? 'bmd' : b; }
 
 // ── LOOKUPS ───────────────────────────────────────────────────────────────────
 const STATE_TO_ABBR = {
@@ -241,39 +341,41 @@ const FIPS = {
   '54':'WV','55':'WI','56':'WY'
 };
 
-// ── COLORS — pastel green → yellow → red ─────────────────────────────────────
-// light mint → soft yellow-green → amber → orange → red
-const STOPS = [
-  [240,252,240],  // very light mint (near white)
-  [180,230,160],  // soft pastel green
-  [255,235,100],  // pastel yellow
-  [255,165, 60],  // warm orange
-  [210,  40, 40], // strong red
-];
+// ── COLORS ────────────────────────────────────────────────────────────────────
+const STOPS = [[240,252,240],[180,230,160],[255,235,100],[255,165,60],[210,40,40]];
 function heatColor(v, max) {
   if (!v || max === 0) return '#F0FCF0';
-  const t   = Math.pow(v / max, 0.5);
-  const seg = t * (STOPS.length - 1);
-  const i   = Math.min(Math.floor(seg), STOPS.length - 2);
-  const f   = seg - i;
-  const [r1,g1,b1] = STOPS[i], [r2,g2,b2] = STOPS[i+1];
+  const t = Math.pow(v/max, 0.5);
+  const seg = t*(STOPS.length-1);
+  const i = Math.min(Math.floor(seg), STOPS.length-2);
+  const f = seg-i;
+  const [r1,g1,b1]=STOPS[i],[r2,g2,b2]=STOPS[i+1];
   return `rgb(${~~(r1+(r2-r1)*f)},${~~(g1+(g2-g1)*f)},${~~(b1+(b2-b1)*f)})`;
 }
-function txtColor(v, max) { return (v/max) > 0.65 ? '#fff' : '#2D5A1B'; }
+function txtColor(v, max) { return (v/max)>0.65?'#fff':'#2D5A1B'; }
 
-// ── STATE ─────────────────────────────────────────────────────────────────────
-let ALL = [];
-let catMode = 'all'; // 'all' | 'pkg' | 'log'
-let selWeeks=[], selBrands=[], selFCs=[], selShippers=[], selSubtypes=[];
-let allWeeks=[], allBrands=[], allFCs=[], allShippers=[];
+// ── LAST SUNDAY ───────────────────────────────────────────────────────────────
+function getLastSunday() {
+  const d = new Date();
+  const day = d.getDay(); // 0=Sun
+  d.setDate(d.getDate() - day);
+  return d.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'short',day:'numeric'});
+}
+
+// ── APP STATE ─────────────────────────────────────────────────────────────────
+let ALL=[], ORDERS=[];
+let viewMode='count', catMode='all';
+let selWeeks=[], selBrands=[], selShippers=[], selSubtypes=[];
+let allWeeks=[], allBrands=[], allShippers=[];
 let pkgSubtypes=[], logSubtypes=[];
 let stateEls={}, labelEls={};
+let weekDDOpen=false;
 
 // ── FETCH ─────────────────────────────────────────────────────────────────────
-async function fetchData() {
-  const url = `${SUPA_URL}/rest/v1/${TABLE}?select=${encodeURIComponent(COLS.join(','))}&limit=50000`;
-  const res = await fetch(url, { headers:{ apikey:SUPA_KEY, Authorization:`Bearer ${SUPA_KEY}` }});
-  if (!res.ok) throw new Error(`Supabase ${res.status}: ${res.statusText}`);
+async function fetchTable(table, cols) {
+  const url = `${SUPA_URL}/rest/v1/${table}?select=${encodeURIComponent(cols.join(','))}&limit=100000`;
+  const res = await fetch(url,{headers:{apikey:SUPA_KEY,Authorization:`Bearer ${SUPA_KEY}`}});
+  if (!res.ok) throw new Error(`Supabase ${res.status} on ${table}: ${res.statusText}`);
   return res.json();
 }
 
@@ -286,38 +388,53 @@ async function init() {
   document.getElementById('ov-icon').style.animation='pulse 1.6s ease-in-out infinite';
 
   try {
-    setSub('Fetching data from Supabase…');
-    const raw = await fetchData();
+    setSub('Fetching complaints…');
+    const rawC = await fetchTable('complaints',
+      ['State','Delivery Week of Year','Brand','Production Site','Shipper','Complaint Category Raw','Complaint Subcategory','Region']);
 
-    ALL = raw.map(r => {
+    setSub('Fetching orders…');
+    const rawO = await fetchTable('Orders',
+      ['Brand','Production Site','Year-CW','State','Count of complete orders']);
+
+    // Parse complaints
+    ALL = rawC.map(r=>{
       const sub = normalizeSubtype((r['Complaint Subcategory']||'').trim());
       const cat = inferCategory((r['Complaint Category Raw']||'').trim(), sub);
       return {
-        stateName : (r['State']||'').trim(),
-        stateAbbr : STATE_TO_ABBR[(r['State']||'').trim()] || '',
-        week      : parseInt(r['Delivery Week of Year']) || 0,
+        stateAbbr : STATE_TO_ABBR[(r['State']||'').trim()]||'',
+        week      : parseInt(r['Delivery Week of Year'])||0,
         brand     : normBrand((r['Brand']||'').trim().toLowerCase()),
-        fc        : (r['Production Site']||'').trim() || 'Unknown',
-        shipper   : (r['Shipper']||'').trim().toLowerCase() || 'unknown',
+        shipper   : (r['Shipper']||'').trim().toLowerCase()||'unknown',
         category  : cat,
         subtype   : sub,
-        region    : (r['Region']||'').trim(),
       };
-    }).filter(r => r.stateAbbr && r.week);
+    }).filter(r=>r.stateAbbr&&r.week);
 
-    const uniq = fn => [...new Set(ALL.map(fn))].filter(Boolean).sort();
+    // Parse orders
+    ORDERS = rawO.map(r=>{
+      const yearCW=(r['Year-CW']||'').trim();
+      const week=yearCW?parseInt(yearCW.split('-')[1]):0;
+      const count=parseInt((r['Count of complete orders']||'0').toString().replace(/,/g,''))||0;
+      return {
+        stateAbbr : STATE_TO_ABBR[(r['State']||'').trim()]||'',
+        week, count,
+        brand     : normBrand((r['Brand']||'').trim().toLowerCase()),
+      };
+    }).filter(r=>r.stateAbbr&&r.week&&r.count>0);
+
+    const uniq = fn=>[...new Set(ALL.map(fn))].filter(Boolean).sort();
     allWeeks    = uniq(r=>r.week).sort((a,b)=>a-b);
     allBrands   = uniq(r=>r.brand);
-    allFCs      = uniq(r=>r.fc).filter(f=>f!=='Unknown');
     allShippers = uniq(r=>r.shipper).filter(s=>s!=='unknown');
     pkgSubtypes = [...new Set(ALL.filter(r=>r.category==='PackagingAndInsulationComplaint').map(r=>r.subtype))].filter(Boolean).sort();
     logSubtypes = [...new Set(ALL.filter(r=>r.category==='LogisticsComplaint').map(r=>r.subtype))].filter(Boolean).sort();
 
     selWeeks    = allWeeks.slice(-4);
     selBrands   = [...allBrands];
-    selFCs      = [...allFCs];
     selShippers = [...allShippers];
-    selSubtypes = [...pkgSubtypes, ...logSubtypes];
+    selSubtypes = [...pkgSubtypes,...logSubtypes];
+
+    document.getElementById('last-sunday').textContent = getLastSunday();
 
     setSub('Drawing map…');
     await drawMap();
@@ -326,9 +443,8 @@ async function init() {
 
     document.getElementById('overlay').style.display='none';
     document.getElementById('app').style.display='flex';
-    document.getElementById('ref-t').textContent = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   } catch(e) {
-    document.getElementById('ov-error').textContent = `Error: ${e.message}`;
+    document.getElementById('ov-error').textContent=`Error: ${e.message}`;
     show('ov-error','block'); show('ov-retry','inline-block');
     setSub('Could not load data.');
     document.getElementById('ov-icon').textContent='⚠️';
@@ -336,42 +452,44 @@ async function init() {
   }
 }
 
-function normBrand(b) { return b==='bm'?'bmd':b; }
-function setSub(t)     { document.getElementById('ov-sub').textContent=t; }
-function show(id,v)    { document.getElementById(id).style.display=v; }
+function setSub(t)  { document.getElementById('ov-sub').textContent=t; }
+function show(id,v) { document.getElementById(id).style.display=v; }
+async function refresh() { await init(); }
 
-async function refresh() {
-  await init();
+// ── DELIVERY MAP ──────────────────────────────────────────────────────────────
+function buildDeliveryMap() {
+  const dm={};
+  ORDERS.forEach(o=>{
+    if (!selWeeks.includes(o.week))   return;
+    if (!selBrands.includes(o.brand)) return;
+    dm[o.stateAbbr]=(dm[o.stateAbbr]||0)+o.count;
+  });
+  return dm;
 }
 
 // ── MAP ───────────────────────────────────────────────────────────────────────
 let geoFeatures=[];
-
 async function drawMap() {
-  const us      = await fetch('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json').then(r=>r.json());
-  const states  = topojson.feature(us, us.objects.states);
-  const borders = topojson.mesh(us, us.objects.states, (a,b)=>a!==b);
-  const nation  = topojson.feature(us, us.objects.nation);
-  const proj    = d3.geoAlbersUsa().fitSize([960,600], states);
-  const path    = d3.geoPath().projection(proj);
+  const us     = await fetch('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json').then(r=>r.json());
+  const states = topojson.feature(us,us.objects.states);
+  const borders= topojson.mesh(us,us.objects.states,(a,b)=>a!==b);
+  const nation = topojson.feature(us,us.objects.nation);
+  const proj   = d3.geoAlbersUsa().fitSize([960,600],states);
+  const path   = d3.geoPath().projection(proj);
 
   geoFeatures = states.features.map(f=>{
     const fips=String(f.id).padStart(2,'0');
     const abbr=FIPS[fips]||'';
     const [cx,cy]=path.centroid(f);
-    return { abbr, dPath:path(f), cx, cy };
+    return {abbr,dPath:path(f),cx,cy};
   }).filter(f=>f.dPath&&f.abbr);
 
-  const svg = document.getElementById('map-svg');
+  const svg=document.getElementById('map-svg');
   svg.innerHTML='';
-
   const ns='http://www.w3.org/2000/svg';
-  const mk=(tag,attrs)=>{ const e=document.createElementNS(ns,tag); Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v)); return e; };
+  const mk=(tag,attrs)=>{const e=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));return e;};
 
-  // White/near-white background
-  svg.appendChild(mk('rect',{x:0,y:0,width:960,height:600,fill:'#F7F9FA'}));
-
-  // Nation outline — light fill so states pop, clear border
+  svg.appendChild(mk('rect',{x:0,y:0,width:960,height:600,fill:'#F4F6F8'}));
   svg.appendChild(mk('path',{d:path(nation),fill:'#E8EEF5',stroke:'#8AABCC','stroke-width':'2.5'}));
 
   const SKIP=new Set(['RI','DE','DC','CT','NJ','NH','VT','MD','MA']);
@@ -379,180 +497,123 @@ async function drawMap() {
 
   geoFeatures.forEach(({abbr,dPath,cx,cy})=>{
     const g=document.createElementNS(ns,'g');
-
     const p=mk('path',{d:dPath,class:'sp',fill:'#F0FCF0'});
-    p.addEventListener('mouseenter', e=>showTT(abbr));
-    p.addEventListener('mouseleave', hideTT);
+    p.addEventListener('mouseenter',()=>showTT(abbr));
+    p.addEventListener('mouseleave',hideTT);
     g.appendChild(p);
     stateEls[abbr]=p;
-
     if (!SKIP.has(abbr)&&cx&&cy&&!isNaN(cx)) {
-      const t=mk('text',{x:cx,y:cy+4,'text-anchor':'middle',class:'sl',fill:'#7B4F42','data-abbr':abbr});
+      const t=mk('text',{x:cx,y:cy+4,'text-anchor':'middle',class:'sl',fill:'#2D5A1B'});
       t.textContent=abbr;
       g.appendChild(t);
       labelEls[abbr]=t;
     }
     svg.appendChild(g);
   });
-
-  // Borders on top — crisp white lines between states
-  svg.appendChild(mk('path',{d:path(borders),fill:'none',stroke:'#ffffff','stroke-width':'1.2','pointer-events':'none'}));
-  // Outer nation border on top for clean edge
+  svg.appendChild(mk('path',{d:path(borders),fill:'none',stroke:'#fff','stroke-width':'1.2','pointer-events':'none'}));
   svg.appendChild(mk('path',{d:path(nation),fill:'none',stroke:'#7A9FBF','stroke-width':'2','pointer-events':'none'}));
 }
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
 function getFiltered() {
   return ALL.filter(r=>{
-    if (catMode==='pkg' && r.category!=='PackagingAndInsulationComplaint') return false;
-    if (catMode==='log' && r.category!=='LogisticsComplaint') return false;
-    if (!selWeeks.includes(r.week))     return false;
-    if (!selBrands.includes(r.brand))   return false;
-    if (!selFCs.includes(r.fc) && r.fc!=='Unknown' && r.brand!=='bmd') return false;
-    if (!selShippers.includes(r.shipper) && r.shipper!=='unknown') return false;
-    // Only filter by subtype if user has deselected something (not all selected)
-    const currentSubs = catMode==='pkg' ? pkgSubtypes : catMode==='log' ? logSubtypes : [...pkgSubtypes,...logSubtypes];
-    const allSelected = currentSubs.every(s => selSubtypes.includes(s));
-    if (!allSelected && !selSubtypes.includes(r.subtype)) return false;
+    if (catMode==='pkg'&&r.category!=='PackagingAndInsulationComplaint') return false;
+    if (catMode==='log'&&r.category!=='LogisticsComplaint') return false;
+    if (!selWeeks.includes(r.week))    return false;
+    if (!selBrands.includes(r.brand))  return false;
+    if (!selShippers.includes(r.shipper)&&r.shipper!=='unknown') return false;
+    const currentSubs=catMode==='pkg'?pkgSubtypes:catMode==='log'?logSubtypes:[...pkgSubtypes,...logSubtypes];
+    const allSel=currentSubs.every(s=>selSubtypes.includes(s));
+    if (!allSel&&!selSubtypes.includes(r.subtype)) return false;
     return true;
   });
 }
 
 function render() {
-  const filtered = getFiltered();
-  const counts   = {};
-  filtered.forEach(r=>{ if(r.stateAbbr) counts[r.stateAbbr]=(counts[r.stateAbbr]||0)+1; });
-  const max    = Math.max(...Object.values(counts),1);
-  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  const filtered=getFiltered();
+  const counts={};
+  filtered.forEach(r=>{if(r.stateAbbr) counts[r.stateAbbr]=(counts[r.stateAbbr]||0)+1;});
 
-  // Color states
-  geoFeatures.forEach(({abbr})=>{
-    const p=stateEls[abbr];
-    if(p) p.setAttribute('fill', heatColor(counts[abbr]||0, max));
-    const l=labelEls[abbr];
-    if(l) l.setAttribute('fill', txtColor(counts[abbr]||0, max));
+  const delivMap=buildDeliveryMap();
+  const rates={};
+  Object.keys(counts).forEach(a=>{
+    const d=delivMap[a];
+    if (d>0) rates[a]=(counts[a]/d)*1000;
   });
 
-  // Header
-  document.getElementById('s-total').textContent  = filtered.length.toLocaleString();
-  document.getElementById('s-states').textContent = Object.keys(counts).length;
-  if(sorted[0]){
-    document.getElementById('s-top').textContent  = sorted[0][0];
-    document.getElementById('s-top-l').textContent= `${sorted[0][1]} complaints`;
-  } else {
-    document.getElementById('s-top').textContent  = '—';
-    document.getElementById('s-top-l').textContent= 'hottest state';
-  }
+  const hasRate=Object.keys(rates).length>0;
+  const useRate=viewMode==='rate'&&hasRate;
+  const vals=useRate?rates:counts;
+  const max=Math.max(...Object.values(vals),1);
+  const sorted=Object.entries(vals).sort((a,b)=>b[1]-a[1]);
 
-  // Legend
-  document.getElementById('leg-max').textContent=max;
-  document.getElementById('leg-grad').style.background=
-    'linear-gradient(to right,#F0FCF0,#B4E6A0,#FFEB64,#FFA53C,#D22828)';
+  geoFeatures.forEach(({abbr})=>{
+    const p=stateEls[abbr];
+    if(p) p.setAttribute('fill',heatColor(vals[abbr]||0,max));
+    const l=labelEls[abbr];
+    if(l) l.setAttribute('fill',txtColor(vals[abbr]||0,max));
+  });
 
-  // Top states
+  document.getElementById('leg-max').textContent=useRate?max.toFixed(1)+'/1K':max;
+  document.getElementById('leg-title').textContent=useRate?'Complaints per 1,000 Deliveries':'Complaint Count';
+  document.getElementById('leg-grad').style.background='linear-gradient(to right,#F0FCF0,#B4E6A0,#FFEB64,#FFA53C,#D22828)';
+
+  document.getElementById('top-states-title').textContent=useRate?'Top States (Rate)':'Top States';
   const ts=document.getElementById('top-states');
   ts.innerHTML='';
-  sorted.slice(0,8).forEach(([abbr,count])=>{
-    const pct=(count/sorted[0][1]*100).toFixed(0);
+  sorted.slice(0,8).forEach(([abbr,val])=>{
+    const pct=(val/sorted[0][1]*100).toFixed(0);
+    const disp=useRate?val.toFixed(1):val;
     ts.innerHTML+=`<div class="br">
       <div class="br-ab">${abbr}</div>
-      <div class="br-tr"><div class="br-fi" style="width:${pct}%;background:${heatColor(count,max)};"></div></div>
-      <div class="br-n">${count}</div>
+      <div class="br-tr"><div class="br-fi" style="width:${pct}%;background:${heatColor(val,max)};"></div></div>
+      <div class="br-n">${disp}</div>
     </div>`;
   });
 }
 
-// ── FILTERS ───────────────────────────────────────────────────────────────────
-function buildFilters() {
-  makePills('p-weeks',    allWeeks,    selWeeks,    w=>toggleArr(selWeeks,w),    w=>`CW${w}`);
-  makePills('p-brands',   allBrands,   selBrands,   b=>{ toggleArr(selBrands,b); updateFCVisibility(); }, b=>BRAND_LABEL[b]||b);
-  makePills('p-fcs',      allFCs,      selFCs,      f=>toggleArr(selFCs,f));
-  makePills('p-shippers', allShippers, selShippers, s=>toggleArr(selShippers,s), s=>SHIP_LABEL[s]||s);
-  updateSubtypePills();
-  updateFCVisibility();
-}
-
-function updateFCVisibility() {
-  // If ONLY bmd is selected, hide FC pills and show note
-  const onlyBMD = selBrands.length===1 && selBrands[0]==='bmd';
-  const allBMD  = selBrands.every(b=>b==='bmd');
-  document.getElementById('p-fcs').style.display        = allBMD ? 'none' : '';
-  document.getElementById('fc-bmd-note').style.display  = allBMD ? 'block' : 'none';
-}
-
-function updateSubtypePills() {
-  let subs = catMode==='pkg' ? pkgSubtypes : catMode==='log' ? logSubtypes : [...pkgSubtypes,...logSubtypes];
-  subs = [...new Set(subs)].sort();
-  // reset selection to all when category changes
-  selSubtypes = [...subs];
-  makePills('p-sub', subs, selSubtypes, s=>toggleArr(selSubtypes,s));
-}
-
-function makePills(id, opts, sel, onClick, fmt) {
-  const el=document.getElementById(id);
-  el.innerHTML='';
-  opts.forEach(o=>{
-    const b=document.createElement('button');
-    b.className='pill'+(sel.includes(o)?' on':'');
-    b.textContent=fmt?fmt(o):o;
-    b.onclick=()=>{ onClick(o); refreshPills(id,opts,sel,fmt); render(); };
-    el.appendChild(b);
-  });
-}
-
-function refreshPills(id,opts,sel,fmt) {
-  const el=document.getElementById(id);
-  [...el.children].forEach((b,i)=>{ b.className='pill'+(sel.includes(opts[i])?' on':''); });
-}
-
-function toggleArr(arr,item) {
-  const i=arr.indexOf(item);
-  if(i>-1){ if(arr.length>1) arr.splice(i,1); }
-  else arr.push(item);
-}
-
-function setCat(mode) {
-  catMode=mode;
-  ['all','pkg','log'].forEach(m=>{
-    document.getElementById(`ct-${m}`).className='cat-tab'+(mode===m?' on':'');
-  });
-  updateSubtypePills();
-  render();
-}
-
-function rolling4(){ selWeeks.length=0; allWeeks.slice(-4).forEach(w=>selWeeks.push(w)); refreshPills('p-weeks',allWeeks,selWeeks,w=>`CW${w}`); render(); }
-function allW()    { selWeeks.length=0; allWeeks.forEach(w=>selWeeks.push(w));           refreshPills('p-weeks',allWeeks,selWeeks,w=>`CW${w}`); render(); }
-
 // ── TOOLTIP ───────────────────────────────────────────────────────────────────
 let mx=0,my=0;
-document.addEventListener('mousemove',e=>{ mx=e.clientX; my=e.clientY; moveTT(); });
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;moveTT();});
 
 function showTT(abbr) {
   const rows=getFiltered().filter(r=>r.stateAbbr===abbr);
-  if(!rows.length){ hideTT(); return; }
+  if (!rows.length){hideTT();return;}
 
-  const tally=key=>{ const m={}; rows.forEach(r=>{m[r[key]]=(m[r[key]]||0)+1;}); return Object.entries(m).sort((a,b)=>b[1]-a[1]); };
-  const bySubtype=tally('subtype'), byShipper=tally('shipper'), byBrand=tally('brand'), byCat=tally('category');
+  const delivMap=buildDeliveryMap();
+  const deliveries=delivMap[abbr]||0;
+  const pct=deliveries>0?((rows.length/deliveries)*100).toFixed(1):null;
 
+  // Headline: "62 complaints (6.1% of orders)"
+  const pctStr=pct!==null?` <span class="pct">(${pct}% of orders)</span>`:'';
   document.getElementById('tt-name').textContent=ABBR_TO_NAME[abbr]||abbr;
-  document.getElementById('tt-cnt').innerHTML=`${rows.length}<span>complaints</span>`;
+  document.getElementById('tt-headline').innerHTML=
+    `<span class="cnt">${rows.length}</span> complaints${pctStr}` +
+    (deliveries>0?`<br><span style="font-size:11px;color:#95A5B5;font-weight:400;">${deliveries.toLocaleString()} total deliveries</span>`:'');
+
+  const tally=key=>{const m={};rows.forEach(r=>{m[r[key]]=(m[r[key]]||0)+1;});return Object.entries(m).sort((a,b)=>b[1]-a[1]);};
+  const byCat=tally('category'),bySubtype=tally('subtype'),byShipper=tally('shipper'),byBrand=tally('brand');
 
   let html='';
-  if(byCat.length>1||true){
-    html+=`<div class="tt-sh">BY TYPE</div>`;
-    html+=byCat.map(([k,v])=>`<div class="tt-r"><span class="tt-k">${CAT_LABEL[k]||k}</span><span class="tt-v">${v}</span></div>`).join('');
+
+  html+=`<div class="tt-section"><div class="tt-sh">By Type</div>`;
+  html+=byCat.map(([k,v])=>`<div class="tt-r"><span class="tt-k">${CAT_LABEL[k]||k}</span><span class="tt-v">${v}</span></div>`).join('');
+  html+=`</div>`;
+
+  if (bySubtype.length) {
+    html+=`<div class="tt-section"><div class="tt-sh">By Subtype</div>`;
+    html+=bySubtype.slice(0,5).map(([k,v])=>`<div class="tt-r"><span class="tt-k">${k}</span><span class="tt-v">${v}</span></div>`).join('');
+    html+=`</div>`;
   }
-  if(bySubtype.length){
-    html+=`<div class="tt-sh">BY SUBTYPE</div>`;
-    html+=bySubtype.slice(0,4).map(([k,v])=>`<div class="tt-r"><span class="tt-k">${k}</span><span class="tt-v">${v}</span></div>`).join('');
-  }
-  if(byShipper.length){
-    html+=`<div class="tt-sh">BY SHIPPER</div>`;
+  if (byShipper.length) {
+    html+=`<div class="tt-section"><div class="tt-sh">By Shipper</div>`;
     html+=byShipper.map(([k,v])=>`<div class="tt-r"><span class="tt-k d">${SHIP_LABEL[k]||k}</span><span class="tt-v">${v}</span></div>`).join('');
+    html+=`</div>`;
   }
-  if(byBrand.length){
-    html+=`<div class="tt-sh">BY BRAND</div>`;
+  if (byBrand.length) {
+    html+=`<div class="tt-section"><div class="tt-sh">By Brand</div>`;
     html+=byBrand.map(([k,v])=>`<div class="tt-r"><span class="tt-k d">${BRAND_LABEL[k]||k}</span><span class="tt-v">${v}</span></div>`).join('');
+    html+=`</div>`;
   }
 
   document.getElementById('tt-body').innerHTML=html;
@@ -562,16 +623,163 @@ function showTT(abbr) {
 
 function moveTT() {
   const tt=document.getElementById('tt');
-  if(tt.style.display==='none') return;
+  if (tt.style.display==='none') return;
   const W=window.innerWidth,H=window.innerHeight,tw=tt.offsetWidth,th=tt.offsetHeight;
-  let l=mx+16, t=my-12;
+  let l=mx+16,t=my-12;
   if(l+tw>W-8) l=mx-tw-10;
   if(t+th>H-8) t=H-th-8;
   if(t<8) t=8;
-  tt.style.left=l+'px'; tt.style.top=t+'px';
+  tt.style.left=l+'px';tt.style.top=t+'px';
+}
+function hideTT(){document.getElementById('tt').style.display='none';}
+
+// ── FILTERS ───────────────────────────────────────────────────────────────────
+function buildFilters() {
+  buildWeekDropdown();
+  makePills('p-brands',   allBrands,   selBrands,   b=>toggleArr(selBrands,b),   b=>BRAND_LABEL[b]||b);
+  makePills('p-shippers', allShippers, selShippers, s=>toggleArr(selShippers,s), s=>SHIP_LABEL[s]||s);
+  updateSubtypePills();
 }
 
-function hideTT(){ document.getElementById('tt').style.display='none'; }
+function buildWeekDropdown() {
+  const list=document.getElementById('wk-list');
+  list.innerHTML='';
+  allWeeks.forEach(w=>{
+    const item=document.createElement('div');
+    const checked=selWeeks.includes(w);
+    item.className='wk-item'+(checked?' checked':'');
+    item.innerHTML=`<input type="checkbox" ${checked?'checked':''} onchange="toggleWeek(${w},this)"/> CW${w}`;
+    list.appendChild(item);
+  });
+  updateWeekDisplay();
+}
+
+function toggleWeek(w, cb) {
+  if (cb.checked) { if(!selWeeks.includes(w)) selWeeks.push(w); }
+  else { if(selWeeks.length>1) selWeeks=selWeeks.filter(x=>x!==w); else { cb.checked=true; return; } }
+  selWeeks.sort((a,b)=>a-b);
+  // update checkbox class
+  [...document.getElementById('wk-list').children].forEach(item=>{
+    const inp=item.querySelector('input');
+    const wk=parseInt(inp.getAttribute('onchange').match(/\d+/)[0]);
+    item.className='wk-item'+(selWeeks.includes(wk)?' checked':'');
+  });
+  updateWeekDisplay();
+  render();
+}
+
+function updateWeekDisplay() {
+  const el=document.getElementById('week-display');
+  if (selWeeks.length===allWeeks.length) el.textContent='All weeks';
+  else if (selWeeks.length===1) el.textContent=`CW${selWeeks[0]}`;
+  else el.textContent=`CW${selWeeks[0]} – CW${selWeeks[selWeeks.length-1]} (${selWeeks.length}w)`;
+}
+
+function toggleWeekDD() {
+  weekDDOpen=!weekDDOpen;
+  document.getElementById('week-dropdown').className=weekDDOpen?'open':'';
+  document.getElementById('week-select-btn').className=weekDDOpen?'open':'';
+  document.getElementById('week-chevron').className=weekDDOpen?'open':'';
+}
+function closeWeekDD() {
+  weekDDOpen=false;
+  document.getElementById('week-dropdown').className='';
+  document.getElementById('week-select-btn').className='';
+  document.getElementById('week-chevron').className='';
+}
+document.addEventListener('click',e=>{
+  if (!document.getElementById('week-dropdown-wrap').contains(e.target)) closeWeekDD();
+});
+
+function rolling4() {
+  selWeeks=[...allWeeks.slice(-4)];
+  buildWeekDropdown();
+  render();
+}
+function allW() {
+  selWeeks=[...allWeeks];
+  buildWeekDropdown();
+  render();
+}
+
+function updateSubtypePills() {
+  let subs=catMode==='pkg'?pkgSubtypes:catMode==='log'?logSubtypes:[...pkgSubtypes,...logSubtypes];
+  subs=[...new Set(subs)].sort();
+  selSubtypes=[...subs];
+  makePills('p-sub',subs,selSubtypes,s=>toggleArr(selSubtypes,s));
+}
+
+function selAllSubs()     { const subs=[...new Set([...pkgSubtypes,...logSubtypes])]; selSubtypes=[...subs]; makePills('p-sub',subs,selSubtypes,s=>toggleArr(selSubtypes,s)); render(); }
+function selAllBrands()   { selBrands=[...allBrands]; refreshPills('p-brands',allBrands,selBrands,b=>BRAND_LABEL[b]||b); render(); }
+function selAllShippers() { selShippers=[...allShippers]; refreshPills('p-shippers',allShippers,selShippers,s=>SHIP_LABEL[s]||s); render(); }
+
+function makePills(id,opts,sel,onClick,fmt) {
+  const el=document.getElementById(id);
+  el.innerHTML='';
+  opts.forEach(o=>{
+    const b=document.createElement('button');
+    b.className='pill'+(sel.includes(o)?' on':'');
+    b.textContent=fmt?fmt(o):o;
+    b.onclick=()=>{onClick(o);refreshPills(id,opts,sel,fmt);render();};
+    el.appendChild(b);
+  });
+}
+function refreshPills(id,opts,sel,fmt) {
+  const el=document.getElementById(id);
+  [...el.children].forEach((b,i)=>{b.className='pill'+(sel.includes(opts[i])?' on':'');});
+}
+function toggleArr(arr,item) {
+  const i=arr.indexOf(item);
+  if(i>-1){if(arr.length>1)arr.splice(i,1);}
+  else arr.push(item);
+}
+
+function setCat(mode) {
+  catMode=mode;
+  ['all','pkg','log'].forEach(m=>{ document.getElementById(`ct-${m}`).className='cat-tab'+(mode===m?' on':''); });
+  updateSubtypePills();
+  render();
+}
+function setMode(mode) {
+  viewMode=mode;
+  document.getElementById('mt-count').className='mt-btn'+(mode==='count'?' on':'');
+  document.getElementById('mt-rate').className='mt-btn'+(mode==='rate'?' on':'');
+  render();
+}
+
+// ── FEEDBACK ──────────────────────────────────────────────────────────────────
+function openFeedback() {
+  document.getElementById('fb-modal').className='open';
+  document.getElementById('fb-form').style.display='block';
+  document.getElementById('fb-sent').style.display='none';
+  document.getElementById('fb-msg').value='';
+  document.getElementById('fb-name').value='';
+}
+function closeFeedback() {
+  document.getElementById('fb-modal').className='';
+}
+async function sendFeedback() {
+  const name = document.getElementById('fb-name').value.trim() || 'Anonymous';
+  const msg  = document.getElementById('fb-msg').value.trim();
+  if (!msg) { document.getElementById('fb-msg').focus(); return; }
+
+  document.getElementById('fb-send').textContent='Sending…';
+  document.getElementById('fb-send').disabled=true;
+
+  // Use mailto as fallback (works without a backend)
+  const subject = encodeURIComponent(`Cold Chain Map Feedback — ${name}`);
+  const body    = encodeURIComponent(`From: ${name}\n\nFeedback:\n${msg}\n\n---\nSent from Cold Chain Map`);
+  window.location.href = `mailto:${FEEDBACK_EMAIL}?subject=${subject}&body=${body}`;
+
+  // Show success
+  setTimeout(()=>{
+    document.getElementById('fb-form').style.display='none';
+    document.getElementById('fb-sent').style.display='block';
+    document.getElementById('fb-send').textContent='Send Feedback';
+    document.getElementById('fb-send').disabled=false;
+    setTimeout(closeFeedback, 2500);
+  }, 800);
+}
 
 // ── GO ────────────────────────────────────────────────────────────────────────
 init();
